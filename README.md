@@ -1,6 +1,8 @@
-# Initial State Gazebo Plugin
+# FloorPlan DSL Gazebo Plugins
 
-This is a simple Gazebo plugin to set the initial state of a joint at simulation startup. 
+## Initial State Gazebo Plugin
+
+This is a simple Gazebo plugin to set the initial state of a joint at simulation startup.
 
 ## Getting started
 
@@ -18,7 +20,7 @@ Add the path of the plugin to the Gazebo plugin path:
 export GAZEBO_PLUGIN_PATH=$<path_to_plugin>:$GAZEBO_PLUGIN_PATH
 ```
 
-Add the plugin to your model. 
+Add the plugin to your model.
 
 ```xml
 <plugin name="initial_plugin" filename="libinitial_plugin.so">
@@ -29,7 +31,7 @@ Add the plugin to your model.
 
 ## Usage
 
-This plugin was created to support one companion tool of the FloorPlan DSL. The companion tool allows for modelling kinematic chains and their states, as well as their placement in the world. 
+This plugin was created to support one companion tool of the FloorPlan DSL. The companion tool allows for modelling kinematic chains and their states, as well as their placement in the world.
 
 # Acknowledgement
 
