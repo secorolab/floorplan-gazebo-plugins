@@ -12,42 +12,47 @@ install_cmake() {
     fi
 }
 
+# Install ROS packages for Gazebo
 sudo apt-get install ros-jazzy-gz-*-vendor
 
 # Function to build a plugin
 build_plugin() {
-    plugin_dir=$1
-    echo "Building plugin in $plugin_dir..."
-    mkdir -p $plugin_dir/build || { echo "Failed to create build directory in $plugin_dir"; exit 1; }
-    cd $plugin_dir/build || { echo "Failed to enter directory: $plugin_dir/build"; exit 1; }
-    cmake ../ || { echo "CMake configuration failed for $plugin_dir"; exit 1; }
-    make || { echo "Make failed for $plugin_dir"; exit 1; }
+    plugin_src=$1
+    plugin_name=$(basename "$plugin_src" .cc)
+    build_dir="build/$plugin_name"
+    echo "Building plugin $plugin_name from $plugin_src..."
+    mkdir -p $build_dir || { echo "Failed to create build directory $build_dir"; exit 1; }
+    cd $build_dir || { echo "Failed to enter directory: $build_dir"; exit 1; }
+    cmake ../.. || { echo "CMake configuration failed for $plugin_src"; exit 1; }
+    make || { echo "Make failed for $plugin_src"; exit 1; }
     cd - > /dev/null
-    echo "Plugin in $plugin_dir built successfully."
+    echo "Plugin $plugin_name built successfully."
 }
 
 # Function to add plugin path to Gazebo plugin path
 add_plugin_path() {
-    plugin_path=$1
-    echo "Adding $plugin_path to Gazebo plugin path..."
-    export GAZEBO_PLUGIN_PATH=$plugin_path:$GAZEBO_PLUGIN_PATH
+    build_dir=$1
+    echo "Adding $build_dir to Gazebo plugin path..."
+    export GAZEBO_PLUGIN_PATH=$build_dir:$GAZEBO_PLUGIN_PATH
     echo "GAZEBO_PLUGIN_PATH updated successfully."
 }
 
 # Install cmake if not installed
 install_cmake
 
-# Find all plugin directories ending with "-plugin"
-plugin_dirs=($(find . -type d -name "*-plugin"))
+# Find all plugin .cc files in the src directory
+plugin_files=($(find ./src -type f -name "*.cc"))
 
 # Build each plugin
-for plugin_dir in "${plugin_dirs[@]}"; do
-    build_plugin $plugin_dir
+for plugin_file in "${plugin_files[@]}"; do
+    build_plugin $plugin_file
 done
 
-# Add each plugin to the Gazebo plugin path
-for plugin_dir in "${plugin_dirs[@]}"; do
-    add_plugin_path "$PWD/$plugin_dir/build"
+# Add each plugin build directory to the Gazebo plugin path
+for plugin_file in "${plugin_files[@]}"; do
+    plugin_name=$(basename "$plugin_file" .cc)
+    build_dir="$PWD/build/$plugin_name"
+    add_plugin_path "$build_dir"
 done
 
 echo "All plugins built and paths added to GAZEBO_PLUGIN_PATH."
