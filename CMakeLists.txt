@@ -28,7 +28,7 @@ project(floorplan_gazebo_plugins)
 #)
 
 # Find Gazebo
-# find_package(ament_cmake REQUIRED)
+find_package(ament_cmake REQUIRED)
 find_package(gz_cmake_vendor REQUIRED)
 find_package(gz-cmake3 REQUIRED)
 find_package(gz_physics_vendor REQUIRED)

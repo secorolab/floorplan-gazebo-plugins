@@ -15,6 +15,13 @@ install_cmake() {
 # Install ROS packages for Gazebo
 sudo apt-get install ros-jazzy-gz-*-vendor
 
+if ! grep -q "source /opt/ros/jazzy/setup.bash" ~/.bashrc; then
+    echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+    echo "GAZEBO_PLUGIN_PATH added to ~/.bashrc"
+else
+    echo "GAZEBO_PLUGIN_PATH is already in ~/.bashrc"
+fi
+
 # Function to build a plugin
 build_plugin() {
     plugin_src=$1
@@ -33,8 +40,19 @@ build_plugin() {
 add_plugin_path() {
     build_dir=$1
     echo "Adding $build_dir to Gazebo plugin path..."
-    export GAZEBO_PLUGIN_PATH=$build_dir:$GAZEBO_PLUGIN_PATH
+    GAZEBO_PLUGIN_PATH=$build_dir:$GAZEBO_PLUGIN_PATH
     echo "GAZEBO_PLUGIN_PATH updated successfully."
+    echo "GAZEBO_PLUGIN_PATH is $GAZEBO_PLUGIN_PATH."
+}
+
+# Function to update .bashrc with GAZEBO_PLUGIN_PATH if not already present
+update_bashrc() {
+    if ! grep -q "export GAZEBO_PLUGIN_PATH=" ~/.bashrc; then
+        echo "export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH" >> ~/.bashrc
+        echo "GAZEBO_PLUGIN_PATH added to ~/.bashrc"
+    else
+        echo "GAZEBO_PLUGIN_PATH is already in ~/.bashrc"
+    fi
 }
 
 # Install cmake if not installed
@@ -54,6 +72,10 @@ for plugin_file in "${plugin_files[@]}"; do
     build_dir="$PWD/build/$plugin_name"
     add_plugin_path "$build_dir"
 done
+
+update_bashrc
+
+source ~/.bashrc
 
 echo "All plugins built and paths added to GAZEBO_PLUGIN_PATH."
 
