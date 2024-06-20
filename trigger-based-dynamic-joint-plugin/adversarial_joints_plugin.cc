@@ -20,14 +20,12 @@ namespace gz
     public: void Configure(const sim::Entity &entity, const std::shared_ptr<const sdf::Element> &sdf,
                            sim::EntityComponentManager &ecm, sim::EventManager &eventMgr) override
     {
-      // Store the pointer to the model
       this->entity = entity;
       this->sdf = sdf;
 
       auto model = sim::Model(entity);
       this->robot = sim::Entity();
 
-      // Get the Joint controller
       std::string jointName = "";
       if (sdf->HasElement("joint")) 
       {
@@ -35,15 +33,12 @@ namespace gz
           this->jointEntity = model.JointByName(ecm, jointName);
       }
 
-      // Read the keyframes from the sdf file
       if (sdf->HasElement("x")) this->startingPose = sdf->Get<double>("x");
       if (sdf->HasElement("y")) this->eventPose = sdf->Get<double>("y");
       if (sdf->HasElement("near")) this->distanceToEvent = sdf->Get<float>("near");
 
-      // Initialize PID controller
       this->pid = gz::math::PID(0.5, 1, 0);
 
-      // Set initial joint position
       auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
       if (!jointPosition)
       {
@@ -59,26 +54,23 @@ namespace gz
     // Called by the world update start event
     public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
     {
-      // Read current sim time      
       float currentTime = std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
 
       if (this->robot == sim::Entity())
       {
         std::string myName = "robile_john";
 
-        // Correctly fetch entities with Model component
         ecm.Each<sim::components::Model, sim::components::Name>(
           [&](const sim::Entity &entity, const sim::components::Model *, const sim::components::Name *nameComp) -> bool
           {
             if (nameComp->Data() == myName)
             {
               this->robot = entity;
-              return false; // stop iteration
+              return false;
             }
-            return true; // continue iteration
+            return true;
           });
 
-        // Set the starting position target
         auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
         jointPosition->Data()[0] = this->startingPose;
         ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
@@ -98,7 +90,6 @@ namespace gz
       }
     }
 
-    // Pointer to the model
     private: sim::Entity entity;
     private: std::shared_ptr<const sdf::Element> sdf;
 
@@ -112,7 +103,6 @@ namespace gz
     private: gz::math::PID pid;
   };
 
-  // Register this plugin with the simulator
   GZ_ADD_PLUGIN(AdversarialJointModelPlugin, sim::System, AdversarialJointModelPlugin::ISystemConfigure, AdversarialJointModelPlugin::ISystemPreUpdate)
   GZ_ADD_PLUGIN_ALIAS(AdversarialJointModelPlugin, "gz::sim::systems::AdversarialJointModelPlugin")
 }

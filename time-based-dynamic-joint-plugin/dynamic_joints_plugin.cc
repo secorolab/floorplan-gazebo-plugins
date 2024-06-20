@@ -11,7 +11,7 @@ namespace gz
 {
   class DynamicJointModelPlugin : public sim::System,
                                   public sim::ISystemConfigure,
-                                  public sim::ISystemPreUpdate  // Correct interface
+                                  public sim::ISystemPreUpdate
   {
     public: void Configure(const sim::Entity &entity, const std::shared_ptr<const sdf::Element> &sdf,
                            sim::EntityComponentManager &ecm, sim::EventManager &eventMgr) override
@@ -50,7 +50,7 @@ namespace gz
       }
     }
 
-    public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override  // Correct method name
+    public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
     {
       float currentTime = std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
       if (currentTime >= this->poseToExecute.time && !this->posesKeyframes.empty())
@@ -88,8 +88,7 @@ namespace gz
     private: double currPose;
   };
 
-  // Register this plugin with the simulator
-  GZ_ADD_PLUGIN(DynamicJointModelPlugin, sim::System, DynamicJointModelPlugin::ISystemConfigure, DynamicJointModelPlugin::ISystemPreUpdate)  // Correct interfaces
+  GZ_ADD_PLUGIN(DynamicJointModelPlugin, sim::System, DynamicJointModelPlugin::ISystemConfigure, DynamicJointModelPlugin::ISystemPreUpdate)
   GZ_ADD_PLUGIN_ALIAS(DynamicJointModelPlugin, "gz::sim::systems::DynamicJointModelPlugin")
 }
 
