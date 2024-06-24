@@ -1,92 +1,109 @@
 #include <functional>
-#include <gazebo/gazebo.hh>
-#include <gazebo/physics/physics.hh>
-#include <gazebo/common/common.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/math/PID.hh>
 #include <ignition/math/Vector3.hh>
-#include "gazebo/common/UpdateInfo.hh"
 #include <jsoncpp/json/json.h>
 #include <fstream>
 
-namespace gazebo
+namespace gz
 {
-  class AdversarialJointModelPlugin : public ModelPlugin
+  class AdversarialJointModelPlugin : public sim::System,
+                                      public sim::ISystemConfigure,
+                                      public sim::ISystemPreUpdate
   {
-    public: void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf)
+    public: void Configure(const sim::Entity &entity, const std::shared_ptr<const sdf::Element> &sdf,
+                           sim::EntityComponentManager &ecm, sim::EventManager &eventMgr) override
     {
-      // Store the pointer to the model
-      this->model = _parent;
-      this->sdf = _sdf;
+      this->entity = entity;
+      this->sdf = sdf;
 
-      this->world = physics::get_world();
-      this->robot = NULL;
+      auto model = sim::Model(entity);
+      this->robot = sim::Entity();
 
-      // Get the Joint controller
-      std::string joint_name = "";
-      if (_sdf->HasElement("joint")) joint_name = _sdf->Get<std::string>("joint");
-      this->joint = _parent->GetJoint(joint_name);
-      this->controller = _parent->GetJointController();
+      std::string jointName = "";
+      if (sdf->HasElement("joint")) 
+      {
+          jointName = sdf->Get<std::string>("joint");
+          this->jointEntity = model.JointByName(ecm, jointName);
+      }
 
-      common::PID pid = common::PID(0.5, 1, 0);
-      this->controller->SetPositionPID(this->joint->GetScopedName(), pid);
+      if (sdf->HasElement("x")) this->startingPose = sdf->Get<double>("x");
+      if (sdf->HasElement("y")) this->eventPose = sdf->Get<double>("y");
+      if (sdf->HasElement("near")) this->distanceToEvent = sdf->Get<float>("near");
 
-      // Read the keyframes from the json file 
-      // if (_sdf->HasElement("<place>")) {
-      if (_sdf->HasElement("x")) this->starting_pose = _sdf->Get<double>("x");
-      if (_sdf->HasElement("y")) this->event_pose = _sdf->Get<double>("y");
-      if (_sdf->HasElement("near")) this->distance_to_event = _sdf->Get<float>("near");
+      this->pid = gz::math::PID(0.5, 1, 0);
 
-      // Listen to the update event. This event is broadcast every simulation iteration.
-      this->updateConnection = event::Events::ConnectWorldUpdateBegin(std::bind(&AdversarialJointModelPlugin::OnUpdate, this, std::placeholders::_1));
+      auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
+      if (!jointPosition)
+      {
+          ecm.CreateComponent(this->jointEntity, sim::components::JointPosition({this->startingPose}));
+      }
+      else
+      {
+          jointPosition->Data()[0] = this->startingPose;
+          ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
+      }
     }
 
     // Called by the world update start event
-    public: void OnUpdate(const common::UpdateInfo &_info)
+    public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
     {
-      // Read current sim time      
-      float current_time = physics::get_world()->SimTime().Float();
+      float currentTime = std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
 
-      if (this->robot == NULL){
-        std::string my_name = "robile_john";
+      if (this->robot == sim::Entity())
+      {
+        std::string myName = "robile_john";
 
-        std::vector<physics::ModelPtr> models = this->world->Models();
-        for(int i=0; i<models.size(); i++) {
-          
-          if (models[i]->GetName()==my_name){
-            this->robot = this->world->ModelByName(my_name);
-          }
-        }
-        this->controller->SetPositionTarget(this->joint->GetScopedName(), this->starting_pose);
+        ecm.Each<sim::components::Model, sim::components::Name>(
+          [&](const sim::Entity &entity, const sim::components::Model *, const sim::components::Name *nameComp) -> bool
+          {
+            if (nameComp->Data() == myName)
+            {
+              this->robot = entity;
+              return false;
+            }
+            return true;
+          });
 
-      }else{
-        // std::cout << "Found the robot!" << this->starting_pose << "\t" << this->event_pose << std::endl;
-        ignition::math::Pose3d robot_pose = this->robot->WorldPose();
-        ignition::math::Pose3d door_pose = this->model->WorldPose();
-        float distance = door_pose.Pos().Distance(robot_pose.Pos());
+        auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
+        jointPosition->Data()[0] = this->startingPose;
+        ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
+      }
+      else
+      {
+        auto robotPose = ecm.Component<sim::components::Pose>(this->robot)->Data();
+        auto doorPose = ecm.Component<sim::components::Pose>(this->entity)->Data();
+        float distance = doorPose.Pos().Distance(robotPose.Pos());
 
-        // std::cout << "ROBOT POSE: " << robot_pose << "\t DOOR POSE: " << door_pose << "\t DISTANCE: " << door_pose.Pos().Distance(robot_pose.Pos()) << std::endl;
-        if (distance < this->distance_to_event) {
-          this->controller->SetPositionTarget(this->joint->GetScopedName(), this->event_pose);
+        if (distance < this->distanceToEvent)
+        {
+          auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
+          jointPosition->Data()[0] = this->eventPose;
+          ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
         }
       }
     }
 
-    // Pointer to the model
-    private: physics::ModelPtr model;
-    private: sdf::ElementPtr sdf;
+    private: sim::Entity entity;
+    private: std::shared_ptr<const sdf::Element> sdf;
 
-    private: double starting_pose;
-    private: double event_pose;
-    private: float distance_to_event;
-    private: double step;
+    private: double startingPose;
+    private: double eventPose;
+    private: float distanceToEvent;
 
-    private: gazebo::physics::JointControllerPtr controller;
-    private: gazebo::physics::JointPtr joint;
-    private: physics::ModelPtr robot;
-    private: physics::WorldPtr world;
+    private: sim::Entity jointEntity;
+    private: sim::Entity robot;
     
-    private: event::ConnectionPtr updateConnection;
+    private: gz::math::PID pid;
   };
 
-  // Register this plugin with the simulator
-  GZ_REGISTER_MODEL_PLUGIN(AdversarialJointModelPlugin)
+  GZ_ADD_PLUGIN(AdversarialJointModelPlugin, sim::System, AdversarialJointModelPlugin::ISystemConfigure, AdversarialJointModelPlugin::ISystemPreUpdate)
+  GZ_ADD_PLUGIN_ALIAS(AdversarialJointModelPlugin, "gz::sim::systems::AdversarialJointModelPlugin")
 }
+
