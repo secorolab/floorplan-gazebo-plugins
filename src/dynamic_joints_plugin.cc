@@ -1,6 +1,10 @@
 #include <gz/sim/System.hh>
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
+#include <gz/common/URI.hh>
+#include <gz/common/Util.hh>
+#include "gz/sim/Util.hh"
+#include "gz/sim/components/SourceFilePath.hh"
 #include <gz/sim/components/JointPositionReset.hh>
 #include <jsoncpp/json/json.h>
 #include <fstream>
@@ -33,7 +37,11 @@ namespace gz
       if (sdf->HasElement("uri")) 
       {
           std::string actionsUri = sdf->Get<std::string>("uri");
-          std::ifstream posesJson(actionsUri);
+          auto modelEntity = topLevelModel(entity, ecm);
+          auto modelPath = ecm.ComponentData<sim::components::SourceFilePath>(modelEntity);
+          auto path = common::findFile(sim::asFullPath(actionsUri, modelPath.value()));
+
+          std::ifstream posesJson(path);
           Json::Reader reader;
           Json::Value completeJsonData;
           reader.parse(posesJson, completeJsonData);
