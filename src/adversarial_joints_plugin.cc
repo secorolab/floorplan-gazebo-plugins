@@ -32,9 +32,9 @@ namespace gz
           this->jointEntity = model.JointByName(ecm, jointName);
       }
 
-      if (sdf->HasElement("x")) this->startingPose = sdf->Get<double>("x");
-      if (sdf->HasElement("y")) this->eventPose = sdf->Get<double>("y");
-      if (sdf->HasElement("near")) this->distanceToEvent = sdf->Get<float>("near");
+      if (sdf->HasElement("start_joint_angle")) this->startingPose = sdf->Get<double>("start_joint_angle");
+      if (sdf->HasElement("end_joint_angle")) this->eventPose = sdf->Get<double>("end_joint_angle");
+      if (sdf->HasElement("trigger_dist")) this->distanceToEvent = sdf->Get<float>("trigger_dist");
 
       this->pid = gz::math::PID(0.5, 1, 0);
 
