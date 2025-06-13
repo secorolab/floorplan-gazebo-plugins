@@ -7,8 +7,7 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/Model.hh>
 #include <gz/math/PID.hh>
-#include <ignition/math/Vector3.hh>
-#include <jsoncpp/json/json.h>
+#include <gz/math/Vector3.hh>
 #include <fstream>
 
 namespace gz
