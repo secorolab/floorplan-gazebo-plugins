@@ -1,88 +1,98 @@
-
-
 # FloorPlan DSL Gazebo Plugins
 
 This repository host three plugins for dynamic behaviour of articulated objects:
-* [Initial Joint Pose Plugin](#initial-joint-pose-plugin): sets an initial joint position at the beginning of the simulation.
-* [Time-Based Dynamic Joint Pose Plugin](#time-based-dynamic-joint-pose-plugin): changes the joint position at specified times.
-* [Trigger-Based Dynamic Joint Pose Plugin](#trigger-based-dynamic-joint-pose-plugin) changes the joint position when the robot is at a specified distance. 
+* [Initial State Plugin](#initial-joint-pose-plugin): sets an initial joint position at the beginning of the simulation
+* [Time-Based Triggered Joint Position Plugin](#time-based-dynamic-joint-pose-plugin): changes the joint position at specified times
+* [Distance-Based Triggered Joint Position Plugin](#trigger-based-dynamic-joint-pose-plugin) changes the joint position when the robot is at a specified distance 
 
 ## Getting started
 
-1. Install [ROS Jazzy Jalisco](https://docs.ros.org/en/jazzy/Releases/Release-Jazzy-Jalisco.html#installation)
+## Requirements
 
-2. Make the script 'build_gazebo_plugins.sh' executable:
+- Gazebo Harmonic
+- [ROS Jazzy](https://docs.ros.org/en/jazzy/Installation.html)
 
-```sh
-sudo chmod +x build_gazebo_plugins.sh
-```
+## Installation
 
-3. Run the build script
-```sh
-./build_gazebo_plugins.sh
-```
+1. Clone this package to your colcon workspace and [build it](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html#build-the-workspace)
 
-3. Source your bashrc
-```sh
-source ~/.bashrc
-```
+2. [Source your workspace](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html#build-the-workspace)
 
-5. Add the plugins to your model as defined in the section [Usage](#Usage)
+3. Add the plugins to your Gazebo world as defined in the section [Usage](#Usage) or by generating the Gazebo world model using the [scenery_builder](https://github.com/secorolab/scenery_builder)
+
+4. Launch or start your Gazebo world
 
 ## Usage
 
-### Initial Joint Pose Plugin
+These plugins were created to support the execution of sceneries defined with the FloorPlan DSL.
+The objects model objects' kinematic chains and their states, as well as their placement in the world.
 
-This plugin was created to support one companion tool of the FloorPlan DSL. The companion tool allows for modelling kinematic chains and their states, as well as their placement in the world.
+### Initial State Plugin
+
+To set the initial state of a joint, add this plugin inside a `<model>` tag:
 
 ```xml
 <plugin name="initial_plugin" filename="libinitial_plugin.so">
-    <joint>JOINT_NAME</joint>
-    <position>JOINT_POSITION</position>
+    <joint></joint>
+    <position></position>
 </plugin>
 ```
+
 Where:
-* JOINT_NAME: string, name of the model joint that will have a position set up.
-* JOINT_POSITION: float, position of the joint. If the joint is revolute it is interpreted as radians, and if it is prismatic it is interpreted as meters. 
+* `<joint>`: string, name of the joint that will have a position set up
+* `<position>`: float, position of the joint. If the joint is revolute it is interpreted as radians, and if it is prismatic it is interpreted as meters. 
 
 ### Time-Based Dynamic Joint Pose Plugin
+
+This plugin enables the change of joint positions at sampled intervals. 
+To add this plugin to an object, add the template below inside a `<model>` tag:
+
 ```xml
 <plugin name="dynamic_joint_pluginss" filename="libdynamic_joint_plugin.so">
-    <joint>JOINT_NAME</joint>
-    <uri>PATH_TO_JSON_FILE</uri>
+    <joint></joint>
+    <uri></uri>
 </plugin>
 ```
-Where:
-* JOINT_NAME: string, name of the model joint that will have a position set up.
-* PATH_TO_JSON_FILE: string, path to a json file that specifies the positions and timestamps at which the joint moves. 
 
-The json file has this format: 
+Where:
+* `<joint>`: string, name of the joint that will have a position set up.
+* `<uri>`: string, path to a json file that specifies the positions and timestamps at which the joint moves. If one sets `GZ_SIM_RESOURCE_PATH`, the URI can use relative paths that start with `file://`.
+
+The json file has this format:
+
 ```json
 {
     "keyframes": [
         {
-            "pose": 0,
+            "position": 0,
             "time": 10.0
         }
     ]
 }
 ```
-Similar to JOINT_POSITION,  If the joint is revolute the float value is interpreted as radians, and if it is prismatic it is interpreted as meters. The time is specified in seconds. 
+
+Just like the `<position>` tag, if the joint is revolute the float value is interpreted as radians, and if it is prismatic it is interpreted as meters. The time is specified in seconds. 
 
 ### Trigger-Based Dynamic Joint Pose Plugin
+
+This plugin enables an object to change its joint position based when another object (e.g., a robot) reaches a distance to the base link.
+For example, to open/close a door when a robot is near it.
+To add this plugin to an object, add the template below inside a `<model>` tag:
+
 ```xml
 <plugin name="adversarial_joint_plugin" filename="libadversarial_joint_plugin.so">
-    <joint>JOINT_NAME</joint>
-    <x>JOINT_POSITION_BEFORE_TRIGGER</x>
-    <near>DISTANCE_TO_TRIGGER</near>
-    <y>JOINT_POSITION_AFTER_TRIGGER</y>
+    <joint></joint>
+    <start_joint_angle></start_joint_angle>
+    <trigger_dist></trigger_dist>
+    <end_joint_angle></end_joint_angle>
 </plugin>
 ```
+
 Where:
-* JOINT_NAME: string, name of the model joint that will have a position set up.
-* JOINT_POSITION_BEFORE_TRIGGER: float, similar to JOINT_POSITION.
-* DISTANCE_TO_TRIGGER: float, distance at which the joint goes from the before_trigger position to the after_trigger position, in meters.
-* JOINT_POSITION_AFTER_TRIGGER: float, similar to JOINT_POSITION.
+* `<joint>`: string, name of the joint that will have a position set up.
+* `<start_joint_angle>`: float, similar to joint_position.
+* `<trigger_dist>`: float, distance at which the joint goes from the before_trigger position to the after_trigger position, in meters.
+* `<end_joint_angle>`: float, similar to joint_position.
 
 
 # Acknowledgement
