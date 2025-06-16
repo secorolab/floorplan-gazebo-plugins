@@ -1,9 +1,9 @@
 # FloorPlan DSL Gazebo Plugins
 
 This repository host three plugins for dynamic behaviour of articulated objects:
-* [Initial State Plugin](#initial-joint-pose-plugin): sets an initial joint position at the beginning of the simulation
-* [Time-Based Triggered Joint Position Plugin](#time-based-dynamic-joint-pose-plugin): changes the joint position at specified times
-* [Distance-Based Triggered Joint Position Plugin](#trigger-based-dynamic-joint-pose-plugin) changes the joint position when the robot is at a specified distance 
+* [Initial Joint State Plugin](#initial-joint-state-plugin): sets an initial joint position at the beginning of the simulation
+* [Time-Based Triggered Joint Position Plugin](#time-based-triggered-joint-position-plugin): changes the joint position at specified times
+* [Distance-Based Triggered Joint Position Plugin](#distance-based-triggered-joint-position-plugin) changes the joint position when the robot is at a specified distance 
 
 ## Getting started
 
@@ -27,7 +27,7 @@ This repository host three plugins for dynamic behaviour of articulated objects:
 These plugins were created to support the execution of sceneries defined with the FloorPlan DSL.
 The objects model objects' kinematic chains and their states, as well as their placement in the world.
 
-### Initial State Plugin
+### Initial Joint State Plugin
 
 To set the initial state of a joint, add this plugin inside a `<model>` tag:
 
@@ -42,7 +42,7 @@ Where:
 * `<joint>`: string, name of the joint that will have a position set up
 * `<position>`: float, position of the joint. If the joint is revolute it is interpreted as radians, and if it is prismatic it is interpreted as meters. 
 
-### Time-Based Dynamic Joint Pose Plugin
+### Time-Based Triggered Joint Position Plugin
 
 This plugin enables the change of joint positions at sampled intervals. 
 To add this plugin to an object, add the template below inside a `<model>` tag:
@@ -73,7 +73,7 @@ The json file has this format:
 
 Just like the `<position>` tag, if the joint is revolute the float value is interpreted as radians, and if it is prismatic it is interpreted as meters. The time is specified in seconds. 
 
-### Trigger-Based Dynamic Joint Pose Plugin
+### Distance-Based Triggered Joint Position Plugin
 
 This plugin enables an object to change its joint position based when another object (e.g., a robot) reaches a distance to the base link.
 For example, to open/close a door when a robot is near it.
