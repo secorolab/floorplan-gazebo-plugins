@@ -12,7 +12,7 @@
 
 namespace gz
 {
-  class AdversarialJointModelPlugin : public sim::System,
+  class DistanceTriggeredJointStateChangePlugin : public sim::System,
                                       public sim::ISystemConfigure,
                                       public sim::ISystemPreUpdate
   {
@@ -102,7 +102,7 @@ namespace gz
     private: gz::math::PID pid;
   };
 
-  GZ_ADD_PLUGIN(AdversarialJointModelPlugin, sim::System, AdversarialJointModelPlugin::ISystemConfigure, AdversarialJointModelPlugin::ISystemPreUpdate)
-  GZ_ADD_PLUGIN_ALIAS(AdversarialJointModelPlugin, "gz::sim::systems::AdversarialJointModelPlugin")
+  GZ_ADD_PLUGIN(DistanceTriggeredJointStateChangePlugin, sim::System, DistanceTriggeredJointStateChangePlugin::ISystemConfigure, DistanceTriggeredJointStateChangePlugin::ISystemPreUpdate)
+  GZ_ADD_PLUGIN_ALIAS(DistanceTriggeredJointStateChangePlugin, "gz::sim::systems::DistanceTriggeredJointStateChangePlugin")
 }
 
