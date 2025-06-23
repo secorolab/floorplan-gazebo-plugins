@@ -14,7 +14,7 @@
 
 namespace gz
 {
-    class InitialStatePlugin : public sim::System,
+    class InitialJointStatePlugin : public sim::System,
                                public sim::ISystemConfigure,
                                public sim::ISystemPreUpdate
     {
@@ -61,7 +61,7 @@ namespace gz
         private: double position;
     };
 
-    GZ_ADD_PLUGIN(InitialStatePlugin, sim::System, InitialStatePlugin::ISystemConfigure, InitialStatePlugin::ISystemPreUpdate)
-    GZ_ADD_PLUGIN_ALIAS(InitialStatePlugin, "gz::sim::systems::InitialStatePlugin")
+    GZ_ADD_PLUGIN(InitialJointStatePlugin, sim::System, InitialJointStatePlugin::ISystemConfigure, InitialJointStatePlugin::ISystemPreUpdate)
+    GZ_ADD_PLUGIN_ALIAS(InitialJointStatePlugin, "gz::sim::systems::InitialJointStatePlugin")
 }
 
