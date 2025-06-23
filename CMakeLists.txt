@@ -211,8 +211,8 @@ target_link_libraries(initial_joint_state_plugin
   ${gz-sim8_LIBRARIES}
 )
 
-add_library(dynamic_joint_plugin SHARED src/dynamic_joints_plugin.cc)
-target_link_libraries(dynamic_joint_plugin
+add_library(timed_joint_state_change_plugin SHARED src/timed_joint_state_change_plugin.cc)
+target_link_libraries(timed_joint_state_change_plugin
   ${gz-cmake3_LIBRARIES}
   ${gz-physics7_LIBRARIES}
   ${gz-utils2_LIBRARIES}
@@ -246,7 +246,7 @@ target_link_libraries(distance_triggered_joint_state_change_plugin
 
 install(TARGETS
   initial_joint_state_plugin
-  dynamic_joint_plugin
+  timed_joint_state_change_plugin
   distance_triggered_joint_state_change_plugin
   # DESTINATION ${COLCON_PACKAGE_BIN_DESTINATION} 
   # LIBRARY DESTINATION ${COLCON_PACKAGE_LIB_DESTINATION}
