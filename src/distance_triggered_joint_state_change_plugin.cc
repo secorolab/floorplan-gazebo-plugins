@@ -7,13 +7,12 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/Model.hh>
 #include <gz/math/PID.hh>
-#include <ignition/math/Vector3.hh>
-#include <jsoncpp/json/json.h>
+#include <gz/math/Vector3.hh>
 #include <fstream>
 
 namespace gz
 {
-  class AdversarialJointModelPlugin : public sim::System,
+  class DistanceTriggeredJointStateChangePlugin : public sim::System,
                                       public sim::ISystemConfigure,
                                       public sim::ISystemPreUpdate
   {
@@ -33,9 +32,9 @@ namespace gz
           this->jointEntity = model.JointByName(ecm, jointName);
       }
 
-      if (sdf->HasElement("x")) this->startingPose = sdf->Get<double>("x");
-      if (sdf->HasElement("y")) this->eventPose = sdf->Get<double>("y");
-      if (sdf->HasElement("near")) this->distanceToEvent = sdf->Get<float>("near");
+      if (sdf->HasElement("start_joint_angle")) this->startingPose = sdf->Get<double>("start_joint_angle");
+      if (sdf->HasElement("end_joint_angle")) this->eventPose = sdf->Get<double>("end_joint_angle");
+      if (sdf->HasElement("trigger_dist")) this->distanceToEvent = sdf->Get<float>("trigger_dist");
 
       this->pid = gz::math::PID(0.5, 1, 0);
 
@@ -103,7 +102,7 @@ namespace gz
     private: gz::math::PID pid;
   };
 
-  GZ_ADD_PLUGIN(AdversarialJointModelPlugin, sim::System, AdversarialJointModelPlugin::ISystemConfigure, AdversarialJointModelPlugin::ISystemPreUpdate)
-  GZ_ADD_PLUGIN_ALIAS(AdversarialJointModelPlugin, "gz::sim::systems::AdversarialJointModelPlugin")
+  GZ_ADD_PLUGIN(DistanceTriggeredJointStateChangePlugin, sim::System, DistanceTriggeredJointStateChangePlugin::ISystemConfigure, DistanceTriggeredJointStateChangePlugin::ISystemPreUpdate)
+  GZ_ADD_PLUGIN_ALIAS(DistanceTriggeredJointStateChangePlugin, "gz::sim::systems::DistanceTriggeredJointStateChangePlugin")
 }
 

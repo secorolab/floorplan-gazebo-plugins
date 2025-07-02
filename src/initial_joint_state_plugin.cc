@@ -7,15 +7,14 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/Joint.hh>
 #include <gz/math/PID.hh>
-#include <ignition/math/Vector3.hh>
-#include <jsoncpp/json/json.h>
+#include <gz/math/Vector3.hh>
 #include <fstream>
 
 #define DEBUG
 
 namespace gz
 {
-    class InitialStatePlugin : public sim::System,
+    class InitialJointStatePlugin : public sim::System,
                                public sim::ISystemConfigure,
                                public sim::ISystemPreUpdate
     {
@@ -62,7 +61,7 @@ namespace gz
         private: double position;
     };
 
-    GZ_ADD_PLUGIN(InitialStatePlugin, sim::System, InitialStatePlugin::ISystemConfigure, InitialStatePlugin::ISystemPreUpdate)
-    GZ_ADD_PLUGIN_ALIAS(InitialStatePlugin, "gz::sim::systems::InitialStatePlugin")
+    GZ_ADD_PLUGIN(InitialJointStatePlugin, sim::System, InitialJointStatePlugin::ISystemConfigure, InitialJointStatePlugin::ISystemPreUpdate)
+    GZ_ADD_PLUGIN_ALIAS(InitialJointStatePlugin, "gz::sim::systems::InitialJointStatePlugin")
 }
 

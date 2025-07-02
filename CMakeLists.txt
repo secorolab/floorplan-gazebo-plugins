@@ -198,8 +198,8 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${COLCON_LIBRARIES}
 # )
-add_library(initial_plugin SHARED src/initial_plugin.cc)
-target_link_libraries(initial_plugin
+add_library(initial_joint_state_plugin SHARED src/initial_joint_state_plugin.cc)
+target_link_libraries(initial_joint_state_plugin
   ${gz-cmake3_LIBRARIES}
   ${gz-physics7_LIBRARIES}
   ${gz-utils2_LIBRARIES}
@@ -211,8 +211,8 @@ target_link_libraries(initial_plugin
   ${gz-sim8_LIBRARIES}
 )
 
-add_library(dynamic_joint_plugin SHARED src/dynamic_joints_plugin.cc)
-target_link_libraries(dynamic_joint_plugin
+add_library(timed_joint_state_change_plugin SHARED src/timed_joint_state_change_plugin.cc)
+target_link_libraries(timed_joint_state_change_plugin
   ${gz-cmake3_LIBRARIES}
   ${gz-physics7_LIBRARIES}
   ${gz-utils2_LIBRARIES}
@@ -224,8 +224,8 @@ target_link_libraries(dynamic_joint_plugin
   ${gz-sim8_LIBRARIES}
 )
 
-add_library(adversarial_joint_plugin SHARED src/adversarial_joints_plugin.cc)
-target_link_libraries(adversarial_joint_plugin
+add_library(distance_triggered_joint_state_change_plugin SHARED src/distance_triggered_joint_state_change_plugin.cc)
+target_link_libraries(distance_triggered_joint_state_change_plugin
   ${gz-cmake3_LIBRARIES}
   ${gz-physics7_LIBRARIES}
   ${gz-utils2_LIBRARIES}
@@ -245,9 +245,9 @@ target_link_libraries(adversarial_joint_plugin
 # See http://ros.org/doc/api/colcon/html/adv_user_guide/variables.html
 
 install(TARGETS
-  initial_plugin
-  dynamic_joint_plugin
-  adversarial_joint_plugin
+  initial_joint_state_plugin
+  timed_joint_state_change_plugin
+  distance_triggered_joint_state_change_plugin
   # DESTINATION ${COLCON_PACKAGE_BIN_DESTINATION} 
   # LIBRARY DESTINATION ${COLCON_PACKAGE_LIB_DESTINATION}
   ARCHIVE DESTINATION ${COLCON_PACKAGE_LIB_DESTINATION}

@@ -1,6 +1,10 @@
 #include <gz/sim/System.hh>
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
+#include <gz/common/URI.hh>
+#include <gz/common/Util.hh>
+#include "gz/sim/Util.hh"
+#include "gz/sim/components/SourceFilePath.hh"
 #include <gz/sim/components/JointPositionReset.hh>
 #include <jsoncpp/json/json.h>
 #include <fstream>
@@ -9,7 +13,7 @@
 
 namespace gz
 {
-  class DynamicJointModelPlugin : public sim::System,
+  class TimedJointStateChangePlugin : public sim::System,
                                   public sim::ISystemConfigure,
                                   public sim::ISystemPreUpdate
   {
@@ -18,8 +22,8 @@ namespace gz
     {
       this->entity = entity;
       this->sdf = sdf;
-      this->posesKeyframes = std::vector<Pose>();
-      this->currPose = 0.0;
+      this->keyframeList = std::vector<Keyframe>();
+      this->currPosition = 0.0;
 
       auto model = sim::Model(entity);
 
@@ -33,62 +37,66 @@ namespace gz
       if (sdf->HasElement("uri")) 
       {
           std::string actionsUri = sdf->Get<std::string>("uri");
-          std::ifstream posesJson(actionsUri);
+          auto modelEntity = topLevelModel(entity, ecm);
+          auto modelPath = ecm.ComponentData<sim::components::SourceFilePath>(modelEntity);
+          auto path = common::findFile(sim::asFullPath(actionsUri, modelPath.value()));
+
+          std::ifstream keyframeJson(path);
           Json::Reader reader;
           Json::Value completeJsonData;
-          reader.parse(posesJson, completeJsonData);
+          reader.parse(keyframeJson, completeJsonData);
 
           for (int i = 0; i < completeJsonData["keyframes"].size(); i++){
               float time = completeJsonData["keyframes"][i]["time"].asFloat();
-              double pose = completeJsonData["keyframes"][i]["pose"].asFloat();
-              Pose poseStruct = {.pose = pose, .time = time};
-              this->posesKeyframes.push_back(poseStruct);
+              double position = completeJsonData["keyframes"][i]["position"].asFloat();
+              Keyframe kf = {.position = position, .time = time};
+              this->keyframeList.push_back(kf);
           }
-          posesJson.close();
+          keyframeJson.close();
 
-          this->poseToExecute = this->posesKeyframes[0];
+          this->keyframeToExecute = this->keyframeList[0];
       }
     }
 
     public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
     {
       float currentTime = std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
-      if (currentTime >= this->poseToExecute.time && !this->posesKeyframes.empty())
+      if (currentTime >= this->keyframeToExecute.time && !this->keyframeList.empty())
       {
-          this->currPose = this->poseToExecute.pose;
-          this->posesKeyframes.erase(this->posesKeyframes.begin());
-          if (!this->posesKeyframes.empty())
+          this->currPosition = this->keyframeToExecute.position;
+          this->keyframeList.erase(this->keyframeList.begin());
+          if (!this->keyframeList.empty())
           {
-              this->poseToExecute = this->posesKeyframes[0];
+              this->keyframeToExecute = this->keyframeList[0];
           }
 
           auto jointPositionReset = ecm.Component<sim::components::JointPositionReset>(this->jointEntity);
           if (!jointPositionReset)
           {
-              ecm.CreateComponent(this->jointEntity, sim::components::JointPositionReset({this->currPose}));
+              ecm.CreateComponent(this->jointEntity, sim::components::JointPositionReset({this->currPosition}));
           }
           else
           {
-              jointPositionReset->Data()[0] = this->currPose;
+              jointPositionReset->Data()[0] = this->currPosition;
               ecm.SetChanged(this->jointEntity, sim::components::JointPositionReset::typeId);
           }
       }
     }
 
-    struct Pose {
-      double pose;
+    struct Keyframe {
+      double position;
       float time;
     };
 
     private: sim::Entity entity;
     private: std::shared_ptr<const sdf::Element> sdf;
-    private: std::vector<Pose> posesKeyframes;
-    private: Pose poseToExecute;
+    private: std::vector<Keyframe> keyframeList;
+    private: Keyframe keyframeToExecute;
     private: sim::Entity jointEntity;
-    private: double currPose;
+    private: double currPosition;
   };
 
-  GZ_ADD_PLUGIN(DynamicJointModelPlugin, sim::System, DynamicJointModelPlugin::ISystemConfigure, DynamicJointModelPlugin::ISystemPreUpdate)
-  GZ_ADD_PLUGIN_ALIAS(DynamicJointModelPlugin, "gz::sim::systems::DynamicJointModelPlugin")
+  GZ_ADD_PLUGIN(TimedJointStateChangePlugin, sim::System, TimedJointStateChangePlugin::ISystemConfigure, TimedJointStateChangePlugin::ISystemPreUpdate)
+  GZ_ADD_PLUGIN_ALIAS(TimedJointStateChangePlugin, "gz::sim::systems::TimedJointStateChangePlugin")
 }
 
