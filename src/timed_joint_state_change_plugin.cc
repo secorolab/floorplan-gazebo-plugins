@@ -13,7 +13,7 @@
 
 namespace gz
 {
-  class DynamicJointModelPlugin : public sim::System,
+  class TimedJointStateChangePlugin : public sim::System,
                                   public sim::ISystemConfigure,
                                   public sim::ISystemPreUpdate
   {
@@ -96,7 +96,7 @@ namespace gz
     private: double currPosition;
   };
 
-  GZ_ADD_PLUGIN(DynamicJointModelPlugin, sim::System, DynamicJointModelPlugin::ISystemConfigure, DynamicJointModelPlugin::ISystemPreUpdate)
-  GZ_ADD_PLUGIN_ALIAS(DynamicJointModelPlugin, "gz::sim::systems::DynamicJointModelPlugin")
+  GZ_ADD_PLUGIN(TimedJointStateChangePlugin, sim::System, TimedJointStateChangePlugin::ISystemConfigure, TimedJointStateChangePlugin::ISystemPreUpdate)
+  GZ_ADD_PLUGIN_ALIAS(TimedJointStateChangePlugin, "gz::sim::systems::TimedJointStateChangePlugin")
 }
 
