@@ -1,17 +1,16 @@
-#include <functional>
 #include <gz/sim/System.hh>
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/sim/components/Pose.hh>
-#include <gz/sim/components/JointPosition.hh>
+#include "gz/sim/components/Joint.hh"
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/Model.hh>
-#include <gz/math/PID.hh>
-#include <gz/math/Vector3.hh>
-#include <fstream>
+#include <gz/msgs/actuators.pb.h>
+#include <gz/transport/Node.hh>
 
 namespace gz
 {
+  using namespace std::chrono_literals;
   class DistanceTriggeredJointStateChangePlugin : public sim::System,
                                       public sim::ISystemConfigure,
                                       public sim::ISystemPreUpdate
@@ -24,45 +23,48 @@ namespace gz
 
       auto model = sim::Model(entity);
       this->robot = sim::Entity();
+      this->active = false;
+      this->topic = transport::TopicUtils::AsValidTopic("/" + model.Name(ecm) + "_controller");
 
-      std::string jointName = "";
-      if (sdf->HasElement("joint")) 
+      if (!sdf->HasElement("joint"))
       {
-          jointName = sdf->Get<std::string>("joint");
-          this->jointEntity = model.JointByName(ecm, jointName);
+        gzerr << "Missing required parameter <joint>." << std::endl;
+        return;
       }
 
-      if (sdf->HasElement("start_joint_angle")) this->startingPose = sdf->Get<double>("start_joint_angle");
+      std::string jointName = sdf->Get<std::string>("joint");
+      this->jointEntity = ecm.EntityByComponents(sim::components::Joint(), sim::components::Name(jointName));
+
       if (sdf->HasElement("end_joint_angle")) this->eventPose = sdf->Get<double>("end_joint_angle");
       if (sdf->HasElement("trigger_dist")) this->distanceToEvent = sdf->Get<float>("trigger_dist");
 
-      this->pid = gz::math::PID(0.5, 1, 0);
+      if (!sdf->HasElement("target"))
+      {
+        gzerr << "Missing required parameter <target>." << std::endl;
+        return;
+      }
+      this->targetName = sdf->Get<std::string>("target");
 
-      auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
-      if (!jointPosition)
-      {
-          ecm.CreateComponent(this->jointEntity, sim::components::JointPosition({this->startingPose}));
-      }
-      else
-      {
-          jointPosition->Data()[0] = this->startingPose;
-          ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
-      }
+      gzdbg << "Dist. triggered plugin parameters:" << std::endl;
+      gzdbg << "joint: [" << jointName << "]" << std::endl;
+      gzdbg << "end joint angle: [" << this->eventPose << "]" << std::endl;
+      gzdbg << "trigger distance: [" << this->distanceToEvent << "]" << std::endl;
+      gzdbg << "target: [" << this->targetName << "]" << std::endl;
+
     }
 
-    // Called by the world update start event
     public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
     {
       float currentTime = std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
 
       if (this->robot == sim::Entity())
       {
-        std::string myName = "robile_john";
 
+        gzmsg << "Finding " << this->targetName << " model" << std::endl;
         ecm.Each<sim::components::Model, sim::components::Name>(
           [&](const sim::Entity &entity, const sim::components::Model *, const sim::components::Name *nameComp) -> bool
           {
-            if (nameComp->Data() == myName)
+            if (nameComp->Data() == this->targetName)
             {
               this->robot = entity;
               return false;
@@ -70,9 +72,6 @@ namespace gz
             return true;
           });
 
-        auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
-        jointPosition->Data()[0] = this->startingPose;
-        ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
       }
       else
       {
@@ -80,26 +79,45 @@ namespace gz
         auto doorPose = ecm.Component<sim::components::Pose>(this->entity)->Data();
         float distance = doorPose.Pos().Distance(robotPose.Pos());
 
-        if (distance < this->distanceToEvent)
+        if (distance < this->distanceToEvent && !this->active)
         {
-          auto jointPosition = ecm.Component<sim::components::JointPosition>(this->jointEntity);
-          jointPosition->Data()[0] = this->eventPose;
-          ecm.SetChanged(this->jointEntity, sim::components::JointPosition::typeId);
+          gzmsg << "Activating distance trigger" << std::endl;
+          transport::Node node;
+          auto pub = node.Advertise<msgs::Actuators>(this->topic);
+
+          const double targetPosition{this->eventPose};
+          msgs::Actuators msg;
+          msg.add_position(targetPosition);
+
+          pub.Publish(msg);
+          std::this_thread::sleep_for(100ms);
+          this->active = true;
         }
       }
+    }
+    public: void PostUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm)
+    {
+        auto robotPose = ecm.Component<sim::components::Pose>(this->robot)->Data();
+        auto doorPose = ecm.Component<sim::components::Pose>(this->entity)->Data();
+        float distance = doorPose.Pos().Distance(robotPose.Pos());
+        if (distance > this->distanceToEvent && this->active){
+          gzmsg << "Deactivating distance trigger" << std::endl;
+          this->active = false;
+        }
+
     }
 
     private: sim::Entity entity;
     private: std::shared_ptr<const sdf::Element> sdf;
 
-    private: double startingPose;
     private: double eventPose;
     private: float distanceToEvent;
+    private: std::string targetName;
+    private: bool active;
+    private: std::string topic;
 
     private: sim::Entity jointEntity;
     private: sim::Entity robot;
-    
-    private: gz::math::PID pid;
   };
 
   GZ_ADD_PLUGIN(DistanceTriggeredJointStateChangePlugin, sim::System, DistanceTriggeredJointStateChangePlugin::ISystemConfigure, DistanceTriggeredJointStateChangePlugin::ISystemPreUpdate)
