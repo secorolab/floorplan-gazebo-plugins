@@ -2,17 +2,17 @@
 #include <gz/sim/Model.hh>
 #include <gz/plugin/Register.hh>
 #include <gz/common/URI.hh>
-#include <gz/common/Util.hh>
-#include "gz/sim/Util.hh"
+#include <gz/sim/Util.hh>
+#include <gz/msgs/actuators.pb.h>
+#include <gz/transport/Node.hh>
 #include "gz/sim/components/SourceFilePath.hh"
-#include <gz/sim/components/JointPositionReset.hh>
+#include "gz/sim/components/Joint.hh"
+#include <gz/sim/components/Name.hh>
 #include <jsoncpp/json/json.h>
-#include <fstream>
-#include <iostream>
-#include <functional>
 
 namespace gz
 {
+  using namespace std::chrono_literals;
   class TimedJointStateChangePlugin : public sim::System,
                                   public sim::ISystemConfigure,
                                   public sim::ISystemPreUpdate
@@ -26,16 +26,22 @@ namespace gz
       this->currPosition = 0.0;
 
       auto model = sim::Model(entity);
+      this->topic = transport::TopicUtils::AsValidTopic("/" + model.Name(ecm) + "_controller");
 
-      std::string jointName = "";
-      if (sdf->HasElement("joint")) 
+      if (!sdf->HasElement("joint"))
       {
-          jointName = sdf->Get<std::string>("joint");
-          this->jointEntity = model.JointByName(ecm, jointName);
+        gzerr << "Missing required parameter <joint>." << std::endl;
+        return;
       }
 
-      if (sdf->HasElement("uri")) 
+      std::string jointName = sdf->Get<std::string>("joint");
+      this->jointEntity = ecm.EntityByComponents(sim::components::Joint(), sim::components::Name(jointName));
+
+      if (!sdf->HasElement("uri"))
       {
+        gzerr << "Missing required parameter <uri>." << std::endl;
+        return;
+      }
           std::string actionsUri = sdf->Get<std::string>("uri");
           auto modelEntity = topLevelModel(entity, ecm);
           auto modelPath = ecm.ComponentData<sim::components::SourceFilePath>(modelEntity);
@@ -55,7 +61,10 @@ namespace gz
           keyframeJson.close();
 
           this->keyframeToExecute = this->keyframeList[0];
-      }
+
+      gzdbg << "Timed state change plugin parameters:" << std::endl;
+      gzdbg << "joint: [" << jointName << "]" << std::endl;
+      gzdbg << "file: " << path << std::endl;
     }
 
     public: void PreUpdate(const sim::UpdateInfo &info, sim::EntityComponentManager &ecm) override
@@ -70,16 +79,15 @@ namespace gz
               this->keyframeToExecute = this->keyframeList[0];
           }
 
-          auto jointPositionReset = ecm.Component<sim::components::JointPositionReset>(this->jointEntity);
-          if (!jointPositionReset)
-          {
-              ecm.CreateComponent(this->jointEntity, sim::components::JointPositionReset({this->currPosition}));
-          }
-          else
-          {
-              jointPositionReset->Data()[0] = this->currPosition;
-              ecm.SetChanged(this->jointEntity, sim::components::JointPositionReset::typeId);
-          }
+          transport::Node node;
+          auto pub = node.Advertise<msgs::Actuators>(this->topic);
+
+          const double targetPosition{this->currPosition};
+          msgs::Actuators msg;
+          msg.add_position(targetPosition);
+
+          pub.Publish(msg);
+          std::this_thread::sleep_for(100ms);
       }
     }
 
@@ -94,6 +102,7 @@ namespace gz
     private: Keyframe keyframeToExecute;
     private: sim::Entity jointEntity;
     private: double currPosition;
+    private: std::string topic;
   };
 
   GZ_ADD_PLUGIN(TimedJointStateChangePlugin, sim::System, TimedJointStateChangePlugin::ISystemConfigure, TimedJointStateChangePlugin::ISystemPreUpdate)
